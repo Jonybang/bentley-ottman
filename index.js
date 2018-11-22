@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const geometry = require('./geometry');
+const Tree = require('avl');
 
 const EPS = 1e-9;
 const input = [
@@ -14,21 +15,24 @@ console.log(intersections.map(point => [point.x, point.y]));
 
 function calcQueue(lines){
     const points = [];
-    lines = lines.map(linePoints => {
-        return _.sortBy(linePoints, function(point) {
-            return point[1];
-        }).map((point) => {
-            return {x: point[0], y: point[1]};
-        });
-    });
-    // console.log('lines', lines);
-    lines.forEach((line) => {
-        const point1 = line[0];
-        point1.line = line;
-        const point2 = line[1];
-        point2.line = line;
-        points.push(point1);
-        points.push(point2);
+    
+    lines.forEach(linePoints => {
+        if(linePoints[0][1] > linePoints[1][1]) {
+            linePoints = [linePoints[1], linePoints[0]];
+        }
+        
+        linePoints[0] = {x: linePoints[0][0], y: linePoints[0][1]};
+        linePoints[1] = {x: linePoints[1][0], y: linePoints[1][1]};
+
+        linePoints[0].line = linePoints;
+        linePoints[1].line = linePoints;
+
+        points.push(linePoints[0]);
+        points.push(linePoints[1]);
+
+        linePoints.queuePositions = [];
+        
+        return linePoints;
     });
     
     const queue = geometry.tree(points.slice())
@@ -38,13 +42,6 @@ function calcQueue(lines){
     // console.log('queue', queue);
 
     const intersections = [];
-    
-    const linesByY = _.sortBy(lines, function(line) {
-        return line[0]['y'];
-    });
-    linesByY.forEach(function(d){
-        d.queuePositions = []
-    });
 
     const statusT = geometry.tree([]);
     
