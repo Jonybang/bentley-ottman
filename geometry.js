@@ -1,6 +1,8 @@
 //creates new point 
 const d3 = require('d3');
 
+const EPS = 1e-9;
+
 function P(x, y, color){
     var rv;
     if (x.map){
@@ -191,7 +193,21 @@ function ascendingKey(key) {
     };
 };
 
+
+function pointValue(point) {
+    return point.y + EPS * point.x;
+}
+function pointCompare(point1, point2) {
+    const point1Value = pointValue(point1);
+    const point2Value = pointValue(point2);
+    if(point1Value === point2Value) {
+        return 0;
+    }
+    return point1Value > point2Value ? 1 : -1;
+}
+
 module.exports = {
+    EPS,
     P,
     clone,
     distP,
@@ -206,5 +222,7 @@ module.exports = {
     clamp,
     pairs,
     mod,
-    tree
+    tree,
+    pointValue,
+    pointCompare
 };

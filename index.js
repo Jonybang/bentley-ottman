@@ -2,7 +2,6 @@ const _ = require('lodash');
 const geometry = require('./geometry');
 const Tree = require('avl');
 
-const EPS = 1e-9;
 const input = [
     [[1.201198389753699301, 104.507961440831422805], [1.200340250506997107, 104.532680679112672805]],
     [[1.209607785567641256, 104.532165359705686569], [1.210809247568249700, 104.518947433680295944]],
@@ -14,9 +13,9 @@ const intersections = calcQueue(input);
 console.log(intersections.map(point => [point.x, point.y]));
 
 function calcQueue(lines){
-    const points = [];
+    const queue = new Tree(geometry.pointCompare, true);
     
-    lines.forEach(linePoints => {
+    lines.forEach((linePoints, index) => {
         if(linePoints[0][1] > linePoints[1][1]) {
             linePoints = [linePoints[1], linePoints[0]];
         }
@@ -27,37 +26,33 @@ function calcQueue(lines){
         linePoints[0].line = linePoints;
         linePoints[1].line = linePoints;
 
-        points.push(linePoints[0]);
-        points.push(linePoints[1]);
+        queue.insert(linePoints[0], linePoints[0]);
+        queue.insert(linePoints[1], linePoints[1]);
 
         linePoints.queuePositions = [];
         
         return linePoints;
     });
     
-    const queue = geometry.tree(points.slice())
-        .key(function(d){ return d.y + EPS*d.x })
-        .order();
-    
     // console.log('queue', queue);
 
     const intersections = [];
 
     const statusT = geometry.tree([]);
-    
-    for (let i = 0; i < queue.length && i < 1000; i++){
-        const d = queue[i];
+
+    queue.forEach((node) => {
+        // console.log('node', node);
+        const d = node.key;
         const y = d.y;
-        // console.log(d, 'equalPoints', d);
         if (d.line && equalPoints(d.line[0], d)){
             console.log('insert');
             // insert
             d.color = d.line.color;
             d.type = 'insert';
             const index = statusT
-                .key(function(e){ return geometry.lineXatY(e, d.y - EPS/1000) })
+                .key(function(e){ return geometry.lineXatY(e, d.y - geometry.EPS/1000) })
                 .insert(d.line);
-            
+
             checkIntersection(d.line, statusT[index + 1]);
             checkIntersection(d.line, statusT[index - 1]);
 
@@ -71,12 +66,12 @@ function calcQueue(lines){
             // console.log('findIndex', index, d.line);
             statusT.remove(d.line);
 
-            d.line.queuePositions.push({x: index, y: Math.max(y - 10, queue.prev(i).y)});
+            d.line.queuePositions.push({x: index, y: Math.max(y - 10, queue.prev(node).key.y)});
             checkIntersection(statusT[index - 1], statusT[index])
         } else if (d.lineA && d.lineB){
             // console.log('intersection');
             // intersection
-            statusT.key(function(e){ return geometry.lineXatY(e, d.y - EPS/1000) });
+            statusT.key(function(e){ return geometry.lineXatY(e, d.y - geometry.EPS/1000) });
 
             let indexA = statusT.findIndex(d.lineA);
             let indexB = statusT.findIndex(d.lineB);
@@ -94,7 +89,7 @@ function calcQueue(lines){
         statusT.forEach(function(d, i){
             d.queuePositions.push({x: i, y: y})
         })
-    }
+    });
 
     function checkIntersection(a, b){
         // console.log('checkIntersection', a, b);
