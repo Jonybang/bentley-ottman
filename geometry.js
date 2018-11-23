@@ -136,6 +136,338 @@ function mod(n, m){
 }
 
 
+// function to find out middle element 
+
+// Function for implementing the Binary 
+// Search on linked list 
+
+function shortLine(l) {
+    return [[l[0].x, l[0].y], [l[1].x, l[1].y]];
+}
+
+function LinkedList(comparator) {
+    const nodesByIds = {};
+    const valuesByIds = {};
+    let headId = null;
+    let count = 0;
+    
+    this.find = (value) => {
+        return binarySearch(value);
+    };
+    
+    this.insert = (value) => {
+        if(count === 0) {
+            headId = ++count;
+            nodesByIds[headId] = {
+                nextId: null,
+                prevId: null
+            };
+            valuesByIds[headId] = value;
+            return headId;
+        }
+        const foundLeft = binarySearch(value, true);
+        
+        const compareResult = comparator(valuesByIds[foundLeft], value);
+        
+        if(compareResult === 0) {
+            return foundLeft;
+        } else if(compareResult < 0) {
+            // console.log('insertAfter', foundLeft);
+            return this.insertAfter(foundLeft, value);
+        } else {
+            if(foundLeft === headId) {
+                const newId = ++count;
+                nodesByIds[newId] = {
+                    nextId: headId,
+                    prevId: null
+                };
+                valuesByIds[newId] = value;
+
+                nodesByIds[headId].prevId = newId;
+                // console.log('insert head', newId, nodesByIds);
+                headId = newId;
+                return newId;
+            }
+            // console.log('headId', headId, nodesByIds[headId]);
+            // console.log('foundLeft', foundLeft, nodesByIds[foundLeft]);
+
+            // console.log('insertBefore', foundLeft);
+            return this.insertAfter(nodesByIds[foundLeft].prevId, value);
+        }
+    };
+    
+    this.insertAfter = function(prevId, value) {
+        const newId = ++count;
+        valuesByIds[newId] = value;
+        
+        nodesByIds[newId] = {
+            nextId: nodesByIds[prevId].nextId,
+            prevId: prevId
+        };
+        
+        // console.log('insertAfter', newId, nodesByIds[newId]);
+
+        nodesByIds[prevId].nextId = newId;
+        if(nodesByIds[newId].nextId) {
+            nodesByIds[nodesByIds[newId].nextId].prevId = newId;
+        }
+        return newId;
+    };
+
+    this.remove = function(id) {
+        if(!id) {
+            return;
+        }
+        const node = nodesByIds[id];
+        // console.log('before remove', id, nodesByIds);
+        
+        if(node.prevId) {
+            nodesByIds[node.prevId].nextId = node.nextId;
+        }
+        if(node.nextId) {
+            nodesByIds[node.nextId].prevId = node.prevId;
+        }
+        
+        if(id === headId) {
+            headId = node.nextId;
+        }
+        
+        delete nodesByIds[id];
+
+        // console.log('after remove', id, nodesByIds);
+    };
+    
+    this.swap = function (aId, bId) {
+        const aNode = nodesByIds[aId];
+        const bNode = nodesByIds[bId];
+        const aNodePrevId = aNode.prevId;
+        const aNodeNextId = aNode.nextId;
+        const bNodePrevId = bNode.prevId;
+        const bNodeNextId = bNode.nextId;
+
+        console.log('before swap', aId, bId, nodesByIds);
+
+        if(aNodePrevId === bId) {
+            aNode.prevId = aId;
+            bNode.nextId = bId;
+        } else if(aNodeNextId === bId) {
+            aNode.nextId = aId;
+            bNode.prevId = bId;
+        }
+        
+        if(aNodePrevId) {
+            nodesByIds[aNodePrevId].nextId = bId;
+        }
+        if(aNodeNextId) {
+            nodesByIds[aNodeNextId].prevId = bId;
+        }
+        if(bNodePrevId) {
+            nodesByIds[bNodePrevId].nextId = aId;
+        }
+        if(bNodeNextId) {
+            nodesByIds[bNodeNextId].prevId = aId;
+        }
+        
+        
+        //a: { prevId: 3, nextId: b }
+        //b: { prevId: a, nextId: null }
+        
+        nodesByIds[aId] = bNode;
+        nodesByIds[bId] = aNode;
+        
+        if(!nodesByIds[aId].prevId) {
+            headId = aId;
+        }
+        if(!nodesByIds[bId].prevId) {
+            headId = bId;
+        }
+        
+        console.log('after swap', aId, bId, nodesByIds);
+    };
+    
+    this.getIndex = function (id) {
+        if(!id) {
+            return null;
+        }
+        let curId = headId;
+        let index = 0;
+        do {
+            if(curId === id) {
+                return index;
+            }
+            curId = nodesByIds[curId].nextId;
+            index++;
+        } while(true);
+    };
+
+    this.min = function (aId, bId) {
+        const compareResult = comparator(valuesByIds[aId], valuesByIds[bId]);
+        if(compareResult < 0) {
+            return aId;
+        } else {
+            return bId;
+        }
+    };
+
+    this.max = function (aId, bId) {
+        const compareResult = comparator(valuesByIds[aId], valuesByIds[bId]);
+        if(compareResult > 0) {
+            return aId;
+        } else {
+            return bId;
+        }
+    };
+    
+    this.next = function(id, mul) {
+        if(!id || !nodesByIds[id].nextId) {
+            return null;
+        }
+        if(mul === 1 || !mul) {
+            return nodesByIds[id].nextId;
+        } else {
+            return this.next(nodesByIds[id].nextId, mul - 1);
+        }
+    };
+
+    this.prev = function(id, mul) {
+        console.log('prev', id, nodesByIds);
+        if(!id || !nodesByIds[id].prevId) {
+            return null;
+        }
+        if(mul === 1 || !mul) {
+            return nodesByIds[id].prevId;
+        } else {
+            return this.next(nodesByIds[id].prevId, mul - 1);
+        }
+    };
+    
+    this.getValue = function(id) {
+        return valuesByIds[id];
+    };
+    
+    function binarySearch(value, returnLeft = false) {
+        // console.log('binarySearch begin', returnLeft, headId, nodesByIds);
+        if(!headId) {
+            return null;
+        }
+
+        let curId = headId;
+        // let prevId = null;
+        
+        do {
+            let compareResult = comparator(valuesByIds[curId], value);
+            // console.log('compareResult', compareResult, shortLine(valuesByIds[curId]));
+            
+            if(compareResult === 0) {
+                return curId;
+            } else if(!returnLeft) {
+                if(!nodesByIds[curId].nextId) {
+                    return null;
+                }
+                curId = nodesByIds[curId].nextId;
+            } else {
+                if(compareResult < 0 && nodesByIds[curId].nextId) {
+                    curId = nodesByIds[curId].nextId;
+                } else {
+                    return curId;
+                }
+            }
+        } while (true);
+        
+        do {
+            let compareResult = comparator(valuesByIds[curId], value);
+            console.log('compareResult', curId, compareResult);
+            if(compareResult === 0) {
+                return curId;
+            } else if(compareResult < 0) {
+                if(nodesByIds[curId].nextId && nodesByIds[nodesByIds[curId].nextId].nextId) {
+                    curId = nodesByIds[nodesByIds[curId].nextId].nextId;
+                } else if(nodesByIds[curId].nextId) {
+                    compareResult = comparator(valuesByIds[nodesByIds[curId].nextId], value);
+                    console.log('compareResult next', nodesByIds[curId].nextId, compareResult);
+                    if(compareResult === 0) {
+                        return nodesByIds[curId].nextId;
+                    } else if(compareResult < 0) {
+                        return returnLeft ? nodesByIds[curId].nextId : null;
+                    } else {
+                        return returnLeft ? curId : null;
+                    }
+                } else {
+                    return returnLeft ? curId : null;
+                }
+            } else if(nodesByIds[curId].prevId) {
+                compareResult = comparator(valuesByIds[nodesByIds[curId].prevId], value);
+                console.log('compareResult prev', nodesByIds[curId].prevId, compareResult);
+                if(compareResult === 0) {
+                    return nodesByIds[curId].prevId;
+                } else {
+                    return returnLeft ? nodesByIds[curId].prevId : null;
+                }
+            } else {
+                console.log('compareResult no prev', nodesByIds[curId]);
+                return returnLeft ? curId : null;
+            }
+        } while(true);
+        
+        let start = headId;
+        let last = null;
+        
+        do {
+            // Find middle 
+            let mid = middle(start, last);
+            // console.log('binarySearch', 'start', start, 'last', last, 'mid', mid);
+
+            // If middle is empty 
+            if (mid === null)
+                return null;
+            
+            const compareResult = comparator(valuesByIds[mid], value);
+
+            // If value is present at middle 
+            if (compareResult === 0)
+                return mid;
+
+            // If value is more than mid 
+            else if (compareResult < 0 && nodesByIds[mid].nextId)
+                start = nodesByIds[mid].nextId;
+
+            // If the value is less than mid. 
+            else
+                last = mid;
+            
+            if(start === last) {
+                break;
+            }
+        } while (last === null || nodesByIds[last].nextId !== start);
+
+        if(returnLeft) {
+            return start;
+        } else {
+            return null;
+        }
+    }
+
+    function middle(start, last) {
+        if (start === null)
+            return null;
+
+        let slow = start;
+        let fast = nodesByIds[start].next;
+        if (!fast) {
+            return start;
+        }
+
+        while (comparator(valuesByIds[fast], nodesByIds[last]) !== 0) {
+            fast = nodesByIds[fast].next;
+            if (comparator(valuesByIds[fast], nodesByIds[last]) !== 0){
+                slow = nodesByIds[slow].next;
+                fast = nodesByIds[fast].next;
+            }
+        }
+        return slow;
+    }
+}
+
 function tree(array){
     var key = function(d){ return d };
     var bisect = d3.bisector(function(d){ return key(d) }).left;
@@ -206,6 +538,23 @@ function pointCompare(point1, point2) {
     return point1Value > point2Value ? 1 : -1;
 }
 
+function lineCompare(line1, line2){
+    const line1Value = lineXatY(line1, this.y - EPS/1000);
+    const line2Value = lineXatY(line2, this.y - EPS/1000);
+    let result;
+    if(line1Value === line2Value) {
+        result = 0;
+    } else {
+        result = line1Value > line2Value ? 1 : -1;
+    }
+    // console.log('lineCompare', result, [[line1[0].x, line1[0].y], [line1[1].x, line1[1].y]], [[line2[0].x, line2[0].y], [line2[1].x, line2[1].y]]);
+    return result;
+}
+
+function lineSort(line){
+    return lineXatY(line, this.y - EPS/1000);
+}
+
 module.exports = {
     EPS,
     P,
@@ -224,5 +573,8 @@ module.exports = {
     mod,
     tree,
     pointValue,
-    pointCompare
+    pointCompare,
+    lineCompare,
+    lineSort,
+    LinkedList
 };
