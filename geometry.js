@@ -156,7 +156,7 @@ function LinkedList(comparator) {
     };
     
     this.insert = (value) => {
-        if(count === 0) {
+        if(!headId) {
             headId = ++count;
             nodesByIds[headId] = {
                 nextId: null,
@@ -166,6 +166,7 @@ function LinkedList(comparator) {
             return headId;
         }
         const foundLeft = binarySearch(value, true);
+        console.log('foundLeft', foundLeft);
         
         const compareResult = comparator(valuesByIds[foundLeft], value);
         
